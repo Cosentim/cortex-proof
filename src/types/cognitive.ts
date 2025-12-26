@@ -270,7 +270,7 @@ export interface ProtocolQuery {
  */
 export interface ProtocolResponseSpec {
   format: 'structured' | 'prose' | 'code' | 'mixed';
-  length: 'brief' | 'standard' | 'detailed';
+  length: 'brief' | 'concise' | 'standard' | 'detailed';
   include: string[];
   avoid: string[];
 }
@@ -311,6 +311,7 @@ export interface CognitiveProfileV2 {
   name?: string;
   role?: string;
   timezone?: string;
+  signature?: string;
   
   // Expertise
   expertiseDomains: string[];
@@ -318,6 +319,7 @@ export interface CognitiveProfileV2 {
   // Cognitive style
   strengths: string[];
   learningStyle: string[];
+  learningPipeline?: string[];
   decisionStyle: string[];
   blindSpots: string[];
   
@@ -328,11 +330,16 @@ export interface CognitiveProfileV2 {
   // Communication
   communicationStyle: string;
   preferredFormat: 'structured' | 'prose' | 'mixed';
-  verbosity: 'brief' | 'standard' | 'detailed';
+  verbosity: 'brief' | 'concise' | 'standard' | 'detailed';
   
   // Operating instructions
   alwaysDo: string[];
   neverDo: string[];
+  
+  // Response contract (v2)
+  responseContract?: string[];
+  router?: Record<string, string>;
+  stopRules?: string[];
 }
 
 // ----------------------------------------------------------------------------

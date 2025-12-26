@@ -388,7 +388,7 @@ export function determineResponseSpec(
   const format = profile.preferredFormat || 'mixed';
   
   // Length based on profile and intent
-  let length: 'brief' | 'standard' | 'detailed' = profile.verbosity || 'standard';
+  let length: 'brief' | 'concise' | 'standard' | 'detailed' = profile.verbosity || 'standard';
   if (intent === 'factual') length = 'brief';
   if (intent === 'decision' || intent === 'creative') length = 'detailed';
   
