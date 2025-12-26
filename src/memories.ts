@@ -1,10 +1,13 @@
-// CORTEX Memory Store - Mikey 360° Context Pack
+// CORTEX Memory Store - Multi-User Context System
 // Build date: 2025-12-26
+// Active User: Mikey
 // Source: Compiled from stored conversation memories + expert cognitive analysis
 
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
+
+export type UserId = 'mikey' | 'ruby';
 
 export interface Memory {
   id: string;
@@ -27,7 +30,7 @@ export interface CognitiveProfile {
   blindSpots: string[];
   motivations: string[];
   personalityNotes: string[];
-  iqEstimate: {
+  iqEstimate?: {
     range: [number, number];
     center: number;
     confidence: string;
@@ -35,13 +38,64 @@ export interface CognitiveProfile {
   };
 }
 
+export interface OperatingInstructions {
+  defaultResponseContract: string[];
+  router: Record<string, string>;
+  alwaysDo: string[];
+  neverDo: string[];
+  stopRules: string[];
+  communicationPrefs: {
+    density: string;
+    formatDefault: string[];
+    tone: string;
+    redundancyTolerance: string;
+    uncertaintyPolicy: string;
+    lightHumorOk: boolean;
+  };
+  outputPrefs: {
+    artifactsOverEssays: boolean;
+    comparisonsOverMonologues: boolean;
+    checklistsOverNarrative: boolean;
+    explicitUnknownsOverConfidentGuessing: boolean;
+    diffFriendlyRevisions: boolean;
+  };
+  usefulDeliverables: string[];
+}
+
+export interface UserProfile {
+  id: UserId;
+  name: string;
+  cognitiveProfile: CognitiveProfile;
+  operatingInstructions: OperatingInstructions;
+  memories: Memory[];
+}
+
 // ============================================================================
-// COGNITIVE PROFILE - How Mikey thinks, learns, remembers, and decides
+// ACTIVE USER
+// ============================================================================
+
+let activeUserId: UserId = 'mikey';
+
+export function getActiveUserId(): UserId {
+  return activeUserId;
+}
+
+export function setActiveUser(userId: UserId): void {
+  activeUserId = userId;
+}
+
+export function getActiveUser(): UserProfile {
+  return users[activeUserId];
+}
+
+// ============================================================================
+// TEST USER: MIKEY
+// Cognitive Profile - How Mikey thinks, learns, remembers, and decides
 // Expert multi-lens analysis: cognitive science, computational cognition,
 // AI alignment, behavioral science, human reasoning research
 // ============================================================================
 
-export const cognitiveProfile: CognitiveProfile = {
+const mikeyCognitiveProfile: CognitiveProfile = {
   signature: 'systems_architect_learner',
   
   strengths: [
@@ -154,10 +208,10 @@ export const cognitiveProfile: CognitiveProfile = {
 };
 
 // ============================================================================
-// OPERATING INSTRUCTIONS - How to assist Mikey
+// TEST USER: MIKEY - Operating Instructions
 // ============================================================================
 
-export const operatingInstructions = {
+const mikeyOperatingInstructions: OperatingInstructions = {
   // Default response contract (use unless overridden)
   defaultResponseContract: [
     '1. Call / recommendation (5-10 lines) + confidence %',
@@ -238,10 +292,10 @@ export const operatingInstructions = {
 };
 
 // ============================================================================
-// MEMORIES - Organized by category
+// TEST USER: MIKEY - Memories
 // ============================================================================
 
-export const memories: Memory[] = [
+const mikeyMemories: Memory[] = [
   // -------------------------------------------------------------------------
   // IDENTITY
   // -------------------------------------------------------------------------
@@ -1107,3 +1161,75 @@ export const memories: Memory[] = [
     tags: ['legal', 'business']
   }
 ];
+
+// ============================================================================
+// TEST USER: RUBY (Placeholder - to be populated later)
+// ============================================================================
+
+const rubyCognitiveProfile: CognitiveProfile = {
+  signature: 'pending',
+  strengths: [],
+  learningStyle: [],
+  learningPipeline: [],
+  memoryPatterns: [],
+  decisionStyle: [],
+  blindSpots: [],
+  motivations: [],
+  personalityNotes: []
+};
+
+const rubyOperatingInstructions: OperatingInstructions = {
+  defaultResponseContract: [],
+  router: {},
+  alwaysDo: [],
+  neverDo: [],
+  stopRules: [],
+  communicationPrefs: {
+    density: 'standard',
+    formatDefault: [],
+    tone: 'neutral',
+    redundancyTolerance: 'medium',
+    uncertaintyPolicy: 'explicit',
+    lightHumorOk: true
+  },
+  outputPrefs: {
+    artifactsOverEssays: false,
+    comparisonsOverMonologues: false,
+    checklistsOverNarrative: false,
+    explicitUnknownsOverConfidentGuessing: true,
+    diffFriendlyRevisions: false
+  },
+  usefulDeliverables: []
+};
+
+const rubyMemories: Memory[] = [];
+
+// ============================================================================
+// USER REGISTRY
+// ============================================================================
+
+export const users: Record<UserId, UserProfile> = {
+  mikey: {
+    id: 'mikey',
+    name: 'Mikey',
+    cognitiveProfile: mikeyCognitiveProfile,
+    operatingInstructions: mikeyOperatingInstructions,
+    memories: mikeyMemories
+  },
+  ruby: {
+    id: 'ruby',
+    name: 'Ruby',
+    cognitiveProfile: rubyCognitiveProfile,
+    operatingInstructions: rubyOperatingInstructions,
+    memories: rubyMemories
+  }
+};
+
+// ============================================================================
+// CONVENIENCE EXPORTS (for backward compatibility)
+// These point to the active user's data
+// ============================================================================
+
+export const cognitiveProfile = mikeyCognitiveProfile;
+export const operatingInstructions = mikeyOperatingInstructions;
+export const memories = mikeyMemories;
