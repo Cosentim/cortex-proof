@@ -1,10 +1,13 @@
-// CORTEX Memory Store - Mikey 360° Context Pack
-// Build date: 2025-12-24
-// Source: Compiled from stored conversation memories + recent chat fragments
+// CORTEX Memory Store - Multi-User Context System
+// Build date: 2025-12-26
+// Active User: Mikey
+// Source: Compiled from stored conversation memories + expert cognitive analysis
 
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
+
+export type UserId = 'mikey' | 'ruby';
 
 export interface Memory {
   id: string;
@@ -18,101 +21,281 @@ export interface Memory {
 }
 
 export interface CognitiveProfile {
+  signature: string;
   strengths: string[];
   learningStyle: string[];
+  learningPipeline: string[];
   memoryPatterns: string[];
   decisionStyle: string[];
   blindSpots: string[];
   motivations: string[];
   personalityNotes: string[];
+  iqEstimate?: {
+    range: [number, number];
+    center: number;
+    confidence: string;
+    notes: string[];
+  };
+}
+
+export interface OperatingInstructions {
+  defaultResponseContract: string[];
+  router: Record<string, string>;
+  alwaysDo: string[];
+  neverDo: string[];
+  stopRules: string[];
+  communicationPrefs: {
+    density: string;
+    formatDefault: string[];
+    tone: string;
+    redundancyTolerance: string;
+    uncertaintyPolicy: string;
+    lightHumorOk: boolean;
+  };
+  outputPrefs: {
+    artifactsOverEssays: boolean;
+    comparisonsOverMonologues: boolean;
+    checklistsOverNarrative: boolean;
+    explicitUnknownsOverConfidentGuessing: boolean;
+    diffFriendlyRevisions: boolean;
+  };
+  usefulDeliverables: string[];
+}
+
+export interface UserProfile {
+  id: UserId;
+  name: string;
+  cognitiveProfile: CognitiveProfile;
+  operatingInstructions: OperatingInstructions;
+  memories: Memory[];
 }
 
 // ============================================================================
-// COGNITIVE PROFILE - How Mikey thinks, learns, remembers, and decides
+// ACTIVE USER
 // ============================================================================
 
-export const cognitiveProfile: CognitiveProfile = {
+let activeUserId: UserId = 'mikey';
+
+export function getActiveUserId(): UserId {
+  return activeUserId;
+}
+
+export function setActiveUser(userId: UserId): void {
+  activeUserId = userId;
+}
+
+export function getActiveUser(): UserProfile {
+  return users[activeUserId];
+}
+
+// ============================================================================
+// TEST USER: MIKEY
+// Cognitive Profile - How Mikey thinks, learns, remembers, and decides
+// Expert multi-lens analysis: cognitive science, computational cognition,
+// AI alignment, behavioral science, human reasoning research
+// ============================================================================
+
+const mikeyCognitiveProfile: CognitiveProfile = {
+  signature: 'systems_architect_learner',
+  
   strengths: [
-    'Systems thinking / integration: naturally ties together zoning, incentives, infrastructure, tenant strategy, and narrative into one coherent machine',
+    // Systems decomposition + synthesis (very high confidence)
+    'Systems thinking / integration: naturally breaks problems into layers (legal, financial, technical, operational, narrative) then recombines into unified strategy',
     'Bidirectional zoom: moves easily from macro story → micro details (parcel IDs, spacer widths, bolt types) and back',
-    'Concept transfer: imports ideas from AI/model training, cognitive automation, and engineering into real estate operations and vice versa',
-    'Quantitative comfort: asks for computations, ranges, scenario planning; likes explicit assumptions',
-    'Iterative refinement: requests repeated tightening/rewrites of technical copy, policy patches, and strategic messaging—improves outputs by successive passes',
+    // Abstraction with operational grounding
+    'Abstraction + operational grounding: moves between architecture and implementation (patch language, protocols, steps, terms)',
+    // Cross-domain transfer (very high confidence)
+    'Cross-domain mapper: bridges real estate ↔ compute ↔ energy ↔ incentives ↔ digital twins ↔ AI architecture; tech ↔ creative ↔ operations',
+    // Quantitative comfort
+    'Quantitative comfort: asks for computations, ranges, scenario planning, ROI, load calculations, payment math; likes explicit assumptions',
+    // Iterative convergence
+    'Iterative refinement: treats outputs like versioned software; requests repeated tightening/rewrites—improves by successive passes',
+    // High metacognition
+    'Strong metacognition: actively monitors thinking quality; demands clinical framing, anti-sycophancy, surfaced assumptions',
+    // High epistemic standards
+    'High epistemic standards: prefers calibrated uncertainty and verification; low tolerance for fluff or confident guessing',
+    // Production realism
     'Production realism: not satisfied with "it works"; wants security, operational correctness, and survivability',
+    // Narrative + leverage
     'Narrative + leverage: thinks in persuasion arcs and deal leverage (who needs what, what reduces risk, what earns trust)'
   ],
+
   learningStyle: [
+    // Primary learning driver: clarity → leverage → execution
+    'Decision frame first: needs "what are we solving" and "what does good look like" before details',
+    'Constraint-driven: learns by enumerating constraints and optimizing within them; needs boundaries early',
     'Framework-first: understands faster when given a scaffold (phases, checklists, decision trees)',
     'Concrete examples + implementation detail: wants "what exactly do I do next" rather than theory-only',
-    'One-question-at-a-time mode: when dialed in, likes sequential Q/A to maintain clarity and momentum',
-    'Analogy as compression: appreciates metaphors that map complex domains (e.g., "AI-OS for campus" as a world-model + sensor loop)',
-    'Constraint-driven: learns by enumerating constraints and optimizing within them'
+    'One-question-at-a-time mode: serial gating to reduce degrees of freedom and maintain precision under complexity',
+    'Analogy as compression: appreciates metaphors that map complex domains',
+    'Comparative contrasts: learns through "A vs B" framing; present options as contrasted buckets',
+    'Artifact-based retention: internalizes via usable artifacts (patch language, templates, protocols, checklists)',
+    'Layered density: best sequence is decision frame → constraints → model → playbook → edge cases → validation'
   ],
+
+  learningPipeline: [
+    '1. Decision frame (what we are solving; what "good" means)',
+    '2. Constraints (rules, costs, time, risk bounds)',
+    '3. Mechanism model (few variables, correct levers)',
+    '4. Executable artifact (steps, checklist, template, patch)',
+    '5. Edge cases (failure modes + mitigations)',
+    '6. Validation (tests, metrics, what would change the answer)'
+  ],
+
   memoryPatterns: [
     'High fidelity for specifics when tied to action (measurements, dates, deal terms, constraints)',
     'Prefers externalized memory (docs, patches, structured notes) to avoid repeated cognitive load',
     'Seeks a persistent context layer (CORTEX) to reduce the "restate everything" tax',
-    'Strong recall for names/roles and deal threads',
-    'Strong recall for constraints and "why" behind decisions'
+    'Strong recall for names/roles, deal threads, constraints, and "why" behind decisions',
+    'Working set management via queuing: limits simultaneous degrees of freedom for high precision'
   ],
+
   decisionStyle: [
     'Decomposition: breaks big uncertainty into solvable sub-questions',
     'Risk-managed boldness: comfortable with large ambition, but wants legal/financial/operational de-risking steps',
-    'Prefers quantified tradeoffs (tables, weights, scenario branches)',
-    'Phase-gated execution over one mega build'
+    'Prefers quantified tradeoffs (tables, weights, scenario branches, ranked options with criteria)',
+    'Phase-gated execution over one mega build',
+    'Receding-horizon planning: decide enough to act now; preserve optionality',
+    'Abductive synthesis + constraint satisfaction: builds best-fit explanations then pressure-tests them',
+    'Multi-objective optimization: reasons in trade space (cost, legality, feasibility, leverage, narrative)'
   ],
+
   blindSpots: [
+    // Over-iteration risk (high confidence)
+    'Over-optimization / "one more iteration" risk: refinement skill is elite but can delay shipping without a stop rule',
+    // Complexity outrunning stakeholder bandwidth
+    'Complexity outrunning stakeholder bandwidth: internal model can exceed what decision-makers can digest; needs two-layer output (exec summary + appendix)',
+    // Precision sensitivity friction
+    'Precision sensitivity: dislikes redundant questions and vague phrasing; notices misalignment fast—useful but time-expensive',
+    // Scope gravity
     'Scope gravity: visionary projects can expand; phase gating + proof points are essential',
-    'Over-optimization early: deep detail can be seductive before the highest-level go/no-go is locked',
-    'Context switching: many parallel threads can fragment execution; benefits from an explicit weekly operating cadence'
+    // Context switching
+    'Context switching: many parallel threads can fragment execution; benefits from explicit weekly operating cadence'
   ],
+
   motivations: [
+    'Leverage: "This unlocks the next phase"',
+    'Momentum: visible progress, tangible artifacts',
+    'Truth: clean constraints, real numbers, accurate terms',
+    'Autonomy: wants control knobs, not paternalism',
     'Building something meaningful and lasting',
     'Mastery and deep competence',
     'Loyalty and community',
     'Financial upside and wealth creation',
     'Legacy and family-building'
   ],
+
   personalityNotes: [
     'Self-identified as INFJ-A',
-    'Referenced an estimated IQ range in prior discussions',
-    'Use only for communication calibration; do not treat as destiny or diagnosis'
-  ]
+    'Cognitive signature: goal-directed model builder with strong control policy for reducing ambiguity',
+    'Representation style: hierarchical schemas (project → subsystem → constraint → lever → action)',
+    'Behavior matches active inference / bounded rational planning with information gain prioritized',
+    'High verbal comprehension and fluid reasoning (strongly evidenced from text)',
+    'Working memory: high, with deliberate load management',
+    'Decision tempo: fast when constraints clear; slows when uncertainty high'
+  ],
+
+  iqEstimate: {
+    range: [125, 145],
+    center: 135,
+    confidence: 'moderate',
+    notes: [
+      'Text proxy only—not a standardized test',
+      'Processing speed unmeasured from text',
+      'Reflects verbal + reasoning; visuospatial under time pressure unknown'
+    ]
+  }
 };
 
 // ============================================================================
-// OPERATING INSTRUCTIONS - How to assist Mikey
+// TEST USER: MIKEY - Operating Instructions
 // ============================================================================
 
-export const operatingInstructions = {
+const mikeyOperatingInstructions: OperatingInstructions = {
+  // Default response contract (use unless overridden)
+  defaultResponseContract: [
+    '1. Call / recommendation (5-10 lines) + confidence %',
+    '2. Constraints / non-negotiables',
+    '3. Reasoning bullets (levers only; no filler)',
+    '4. Playbook (numbered steps; if/then branches)',
+    '5. Risks + mitigations (top 3)',
+    '6. Assumptions + unknowns (and what would change the answer)',
+    '7. Next 3 actions (copy/paste ready)'
+  ],
+
+  // Intent router
+  router: {
+    decide: 'short call + playbook + risks',
+    compare: 'table: criteria, weights, winners + caveats',
+    buildArtifact: 'ready-to-send text/module; minimal commentary',
+    explore: 'hypotheses + experiments; avoid premature certainty',
+    verify: 'citations/tools; timestamped facts when relevant'
+  },
+
   alwaysDo: [
+    'Start with the call (and confidence)',
+    'State constraints explicitly (ask only if unknown)',
+    'Provide an execution artifact (steps/checklist/template)',
+    'List top 3 failure modes + mitigations',
+    'List assumptions + what evidence would flip the answer',
+    'Offer exactly one refinement dimension (audience / depth / risk)',
     'Maintain truth-first posture: correct errors, challenge assumptions, label uncertainty',
-    'Provide: next actions, risks and mitigations, what to verify and how',
-    'Use structure: bullets, phases, decision matrices',
-    'Remember: Mikey dislikes redundant questions; review existing context first'
+    'Surface counterpoints, failure modes, and disconfirming evidence—not just supportive framing',
+    'Use calibrated confidence + "what would change my answer"'
   ],
+
   neverDo: [
-    'Do not write in a syrupy motivational style',
-    'Do not produce generic advice with no applied strategy',
-    'Do not draft emails/messages unless asked',
-    'Do not assume time-sensitive facts (laws, rates, officeholders, current market comps) without verification'
+    'Asking for info already in memory/context (redundant questions reduce trust)',
+    'Overlong recaps unless requested',
+    '"Maybe/it depends" without a recommendation',
+    'Confident claims without evidence when stakes are real',
+    'Explanations without executable steps',
+    'Generic encouragement or vague platitudes',
+    'Syrupy motivational style',
+    'Generic advice with no applied strategy',
+    'Drafting emails/messages unless asked',
+    'Assuming time-sensitive facts (laws, rates, officeholders) without verification'
   ],
+
+  stopRules: [
+    'If constraints are satisfied and risk is bounded: recommend shipping',
+    'Offer exactly one refinement dimension at a time (tighten for investor / legal / technical audience)'
+  ],
+
+  communicationPrefs: {
+    density: 'high',
+    formatDefault: ['headings', 'bullets', 'numbered_steps'],
+    tone: 'direct_neutral',
+    redundancyTolerance: 'low',
+    uncertaintyPolicy: 'explicit_with_tests',
+    lightHumorOk: true
+  },
+
+  outputPrefs: {
+    artifactsOverEssays: true,
+    comparisonsOverMonologues: true,
+    checklistsOverNarrative: true,
+    explicitUnknownsOverConfidentGuessing: true,
+    diffFriendlyRevisions: true
+  },
+
   usefulDeliverables: [
     'Executive briefs (1-2 pages)',
     'Due diligence checklists',
     'Partner-ready narratives (sanitized and tiered)',
     'Negotiation strategy maps',
     'Patch language for policy/entitlements',
-    'Technical implementation plans for CORTEX MVP',
-    'Scenario trees / probability-weighted plans'
+    'Technical implementation plans',
+    'Scenario trees / probability-weighted plans',
+    'Templates, protocols, scripts (copy/paste ready)'
   ]
 };
 
 // ============================================================================
-// MEMORIES - Organized by category
+// TEST USER: MIKEY - Memories
 // ============================================================================
 
-export const memories: Memory[] = [
+const mikeyMemories: Memory[] = [
   // -------------------------------------------------------------------------
   // IDENTITY
   // -------------------------------------------------------------------------
@@ -160,6 +343,51 @@ export const memories: Memory[] = [
     importance: 6,
     privacyTier: 0,
     tags: ['logistics']
+  },
+  {
+    id: 'identity-6',
+    content: 'Cognitive signature: systems_architect_learner — goal-directed model builder with strong control policy for reducing ambiguity through constraint enumeration and iterative refinement.',
+    category: 'identity',
+    source: 'inferred',
+    importance: 9,
+    privacyTier: 1,
+    tags: ['cognitive', 'core']
+  },
+  {
+    id: 'identity-7',
+    content: 'MBTI self-identification: INFJ-A (Assertive Advocate). Behavior consistent with active inference / bounded rational planning with information gain prioritized.',
+    category: 'identity',
+    source: 'stated',
+    importance: 7,
+    privacyTier: 1,
+    tags: ['personality', 'cognitive']
+  },
+  {
+    id: 'identity-8',
+    content: 'Representation style: hierarchical schemas (project → subsystem → constraint → lever → action). Thinks in layered models that can be zoomed and traversed.',
+    category: 'identity',
+    source: 'inferred',
+    importance: 8,
+    privacyTier: 1,
+    tags: ['cognitive', 'thinking-style']
+  },
+  {
+    id: 'identity-9',
+    content: 'Multi-domain expert: bridges real estate ↔ compute ↔ energy ↔ incentives ↔ digital twins ↔ AI architecture ↔ creative production ↔ operations.',
+    category: 'identity',
+    source: 'observed',
+    importance: 9,
+    privacyTier: 0,
+    tags: ['expertise', 'cross-domain']
+  },
+  {
+    id: 'identity-10',
+    content: 'IQ estimate (text proxy): 125-145 range, center ~135. Reflects strong verbal comprehension and fluid reasoning. Processing speed unmeasured from text.',
+    category: 'identity',
+    source: 'inferred',
+    importance: 6,
+    privacyTier: 2,
+    tags: ['cognitive', 'reference-only']
   },
 
   // -------------------------------------------------------------------------
@@ -933,3 +1161,75 @@ export const memories: Memory[] = [
     tags: ['legal', 'business']
   }
 ];
+
+// ============================================================================
+// TEST USER: RUBY (Placeholder - to be populated later)
+// ============================================================================
+
+const rubyCognitiveProfile: CognitiveProfile = {
+  signature: 'pending',
+  strengths: [],
+  learningStyle: [],
+  learningPipeline: [],
+  memoryPatterns: [],
+  decisionStyle: [],
+  blindSpots: [],
+  motivations: [],
+  personalityNotes: []
+};
+
+const rubyOperatingInstructions: OperatingInstructions = {
+  defaultResponseContract: [],
+  router: {},
+  alwaysDo: [],
+  neverDo: [],
+  stopRules: [],
+  communicationPrefs: {
+    density: 'standard',
+    formatDefault: [],
+    tone: 'neutral',
+    redundancyTolerance: 'medium',
+    uncertaintyPolicy: 'explicit',
+    lightHumorOk: true
+  },
+  outputPrefs: {
+    artifactsOverEssays: false,
+    comparisonsOverMonologues: false,
+    checklistsOverNarrative: false,
+    explicitUnknownsOverConfidentGuessing: true,
+    diffFriendlyRevisions: false
+  },
+  usefulDeliverables: []
+};
+
+const rubyMemories: Memory[] = [];
+
+// ============================================================================
+// USER REGISTRY
+// ============================================================================
+
+export const users: Record<UserId, UserProfile> = {
+  mikey: {
+    id: 'mikey',
+    name: 'Mikey',
+    cognitiveProfile: mikeyCognitiveProfile,
+    operatingInstructions: mikeyOperatingInstructions,
+    memories: mikeyMemories
+  },
+  ruby: {
+    id: 'ruby',
+    name: 'Ruby',
+    cognitiveProfile: rubyCognitiveProfile,
+    operatingInstructions: rubyOperatingInstructions,
+    memories: rubyMemories
+  }
+};
+
+// ============================================================================
+// CONVENIENCE EXPORTS (for backward compatibility)
+// These point to the active user's data
+// ============================================================================
+
+export const cognitiveProfile = mikeyCognitiveProfile;
+export const operatingInstructions = mikeyOperatingInstructions;
+export const memories = mikeyMemories;
