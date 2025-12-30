@@ -4,26 +4,55 @@ import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageList } from './message-list';
 import { ChatInput } from './chat-input';
-import { ModelSelector } from './model-selector';
+import { ModelPicker } from './model-picker';
 import { Button } from '@/components/ui/button';
-import { Brain, Trash2 } from 'lucide-react';
+import { Brain, Trash2, Settings } from 'lucide-react';
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  modelId?: string;
+}
+
+interface ModelPreferences {
+  selectedModel: string;
+  models: Record<string, { enabled?: boolean }>;
 }
 
 interface ChatInterfaceProps {
   onOpenMemories?: () => void;
+  onOpenSettings?: () => void;
 }
 
-export function ChatInterface({ onOpenMemories }: ChatInterfaceProps) {
-  const [modelId, setModelId] = useState<'fast' | 'balanced' | 'deep'>('balanced');
+export function ChatInterface({ onOpenMemories, onOpenSettings }: ChatInterfaceProps) {
+  const [modelId, setModelId] = useState<string>('gpt-4o-mini');
+  const [modelPreferences, setModelPreferences] = useState<ModelPreferences | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load model preferences
+  useEffect(() => {
+    async function loadPreferences() {
+      try {
+        const res = await fetch('/api/settings/models');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.modelSettings) {
+            setModelPreferences(data.modelSettings);
+            if (data.modelSettings.selectedModel) {
+              setModelId(data.modelSettings.selectedModel);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load model preferences:', error);
+      }
+    }
+    loadPreferences();
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -104,7 +133,16 @@ export function ChatInterface({ onOpenMemories }: ChatInterfaceProps) {
           <h1 className="text-xl font-semibold">CORTEX</h1>
         </div>
         <div className="flex items-center gap-2">
-          <ModelSelector value={modelId} onChange={setModelId} />
+          <ModelPicker 
+            selectedModel={modelId} 
+            onSelectModel={setModelId}
+            preferences={modelPreferences}
+          />
+          {onOpenSettings && (
+            <Button variant="ghost" size="icon" onClick={onOpenSettings} title="Model Settings">
+              <Settings className="h-4 w-4" />
+            </Button>
+          )}
           {onOpenMemories && (
             <Button variant="outline" size="sm" onClick={onOpenMemories}>
               Memories

@@ -74,6 +74,16 @@ export interface CognitiveProfile {
   core_values?: string[];
 }
 
+export interface ModelSettings {
+  selectedModel: string;
+  models: Record<string, {
+    enabled?: boolean;
+    temperature?: number;
+    maxTokens?: number;
+    tuningPrompt?: string;
+  }>;
+}
+
 export interface UserProfile {
   id: string;
   email: string;
@@ -82,6 +92,7 @@ export interface UserProfile {
   preferences: {
     model?: ModelStrength;
     theme?: 'light' | 'dark' | 'system';
+    modelSettings?: ModelSettings;
   };
   onboarding_progress: Record<string, { completed: boolean; timestamp: string }>;
   created_at: string;
