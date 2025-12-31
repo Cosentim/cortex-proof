@@ -9,14 +9,7 @@ import {
   Lightbulb
 } from 'lucide-react';
 import { TeachCortex } from './teach-cortex';
-
-interface CortexStats {
-  memoriesCount: number;
-  conversationsCount: number;
-  topicsLearned: string[];
-  strengthScore: number; // 0-100
-  lastActive: Date | null;
-}
+import type { CortexStats } from '@/hooks';
 
 interface CortexBrainProps {
   stats: CortexStats;
