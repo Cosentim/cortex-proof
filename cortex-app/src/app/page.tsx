@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChatInterface } from '@/components/chat';
 import { CortexNav, CortexBrain } from '@/components/cortex';
+import { UserMenu } from '@/components/auth';
 import { useCortexProfile } from '@/hooks';
 import { Brain, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -16,7 +17,7 @@ export default function Home() {
   const [showTeachPrompt, setShowTeachPrompt] = useState(false);
   
   // Real stats from Supabase
-  const { stats: cortexStats, teach, refresh } = useCortexProfile();
+  const { stats: cortexStats, refresh } = useCortexProfile();
 
   // Show teach prompt after a delay if cortex is weak
   useEffect(() => {
@@ -56,13 +57,14 @@ export default function Home() {
           cortexStrength={cortexStats.strengthScore}
         />
 
-        {/* Settings */}
+        {/* User Menu & Settings */}
         <div className="flex items-center gap-2">
           <Link href="/settings">
             <Button variant="ghost" size="icon">
               <Settings className="h-4 w-4" />
             </Button>
           </Link>
+          <UserMenu />
         </div>
       </header>
 
@@ -105,4 +107,4 @@ export default function Home() {
       </main>
     </div>
   );
-}}
+}
