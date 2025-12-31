@@ -5,8 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageList } from './message-list';
 import { ChatInput } from './chat-input';
 import { ModelSelectorSimple } from './model-selector-simple';
+import { ToolsPanel, type Tool } from './tools-panel';
 import { Button } from '@/components/ui/button';
-import { Brain, Trash2 } from 'lucide-react';
+import { Brain, Trash2, Wrench } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -18,17 +19,35 @@ interface ChatInterfaceProps {
   onOpenMemories?: () => void;
 }
 
+// Available tools
+const AVAILABLE_TOOLS: Tool[] = [
+  { id: 'web_search', name: 'Web Search', description: 'Search the internet for current information', icon: 'search', enabled: false },
+  { id: 'code_interpreter', name: 'Code Interpreter', description: 'Run Python code and analyze data', icon: 'code', enabled: false },
+  { id: 'file_analysis', name: 'File Analysis', description: 'Analyze uploaded documents and images', icon: 'file', enabled: false },
+  { id: 'memory_search', name: 'Memory Search', description: 'Search through your saved memories', icon: 'brain', enabled: true },
+];
+
 export function ChatInterface({ onOpenMemories }: ChatInterfaceProps) {
   const [modelId, setModelId] = useState<string>('gpt-4o-mini');
   const [deepResearch, setDeepResearch] = useState(false);
+  const [tools, setTools] = useState<Tool[]>(AVAILABLE_TOOLS);
+  const [showTools, setShowTools] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const enabledTools = tools.filter(t => t.enabled);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const handleToggleTool = (toolId: string) => {
+    setTools(prev => prev.map(t => 
+      t.id === toolId ? { ...t, enabled: !t.enabled } : t
+    ));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +71,7 @@ export function ChatInterface({ onOpenMemories }: ChatInterfaceProps) {
           messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
           modelId,
           deepResearch,
+          tools: enabledTools.map(t => t.id),
         }),
       });
 
@@ -112,6 +132,20 @@ export function ChatInterface({ onOpenMemories }: ChatInterfaceProps) {
             deepResearch={deepResearch}
             onToggleDeepResearch={setDeepResearch}
           />
+          <Button 
+            variant={enabledTools.length > 1 ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => setShowTools(!showTools)}
+            className="gap-1.5"
+          >
+            <Wrench className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Tools</span>
+            {enabledTools.length > 1 && (
+              <span className="text-xs bg-primary-foreground text-primary rounded-full px-1.5">
+                {enabledTools.length}
+              </span>
+            )}
+          </Button>
           {onOpenMemories && (
             <Button variant="outline" size="sm" onClick={onOpenMemories}>
               Memories
@@ -125,39 +159,84 @@ export function ChatInterface({ onOpenMemories }: ChatInterfaceProps) {
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <AnimatePresence mode="popLayout">
-          {messages.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="flex flex-col items-center justify-center h-full text-center"
-            >
-              <Brain className="h-16 w-16 text-muted-foreground mb-4" />
-              <h2 className="text-2xl font-semibold mb-2">Welcome to CORTEX</h2>
-              <p className="text-muted-foreground max-w-md">
-                Your AI assistant with persistent memory. I remember our conversations
-                and learn about you over time.
-              </p>
-            </motion.div>
-          ) : (
-            <MessageList messages={messages} isLoading={isLoading} />
-          )}
-        </AnimatePresence>
-        <div ref={messagesEndRef} />
+      {/* Tools Panel */}
+      <AnimatePresence>
+        {showTools && (
+          <ToolsPanel 
+            tools={tools} 
+            onToggleTool={handleToggleTool}
+            onClose={() => setShowTools(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Messages - Centered Container */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-3xl mx-auto px-4 py-6">
+          <AnimatePresence mode="popLayout">
+            {messages.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="flex flex-col items-center justify-center min-h-[60vh] text-center"
+              >
+                <Brain className="h-16 w-16 text-muted-foreground mb-4" />
+                <h2 className="text-2xl font-semibold mb-2">Welcome to CORTEX</h2>
+                <p className="text-muted-foreground max-w-md mb-8">
+                  Your AI assistant with persistent memory. I remember our conversations
+                  and learn about you over time.
+                </p>
+                <div className="grid grid-cols-2 gap-3 max-w-lg">
+                  <SuggestionCard 
+                    text="Tell me about yourself" 
+                    onClick={() => setInput("Let me tell you about myself...")} 
+                  />
+                  <SuggestionCard 
+                    text="What do you remember about me?" 
+                    onClick={() => setInput("What do you remember about me?")} 
+                  />
+                  <SuggestionCard 
+                    text="Help me brainstorm" 
+                    onClick={() => setInput("Help me brainstorm ideas for ")} 
+                  />
+                  <SuggestionCard 
+                    text="Explain a concept" 
+                    onClick={() => setInput("Explain the concept of ")} 
+                  />
+                </div>
+              </motion.div>
+            ) : (
+              <MessageList messages={messages} isLoading={isLoading} />
+            )}
+          </AnimatePresence>
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
-      {/* Input */}
-      <div className="p-4 border-t">
-        <ChatInput
-          input={input}
-          handleInputChange={handleInputChange}
-          handleSubmit={handleSubmit}
-          isLoading={isLoading}
-        />
+      {/* Input - Centered */}
+      <div className="border-t bg-background">
+        <div className="max-w-3xl mx-auto p-4">
+          <ChatInput
+            input={input}
+            handleInputChange={handleInputChange}
+            handleSubmit={handleSubmit}
+            isLoading={isLoading}
+          />
+        </div>
       </div>
     </div>
+  );
+}
+
+// Suggestion card component
+function SuggestionCard({ text, onClick }: { text: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="p-3 text-left text-sm rounded-lg border border-border hover:border-primary/50 hover:bg-muted/50 transition-colors"
+    >
+      {text}
+    </button>
   );
 }
