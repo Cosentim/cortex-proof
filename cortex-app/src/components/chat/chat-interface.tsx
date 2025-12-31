@@ -6,6 +6,7 @@ import { MessageList } from './message-list';
 import { ChatInput } from './chat-input';
 import { ModelSelectorSimple } from './model-selector-simple';
 import { ToolsPanel, type Tool } from './tools-panel';
+import { TeachCortex } from '@/components/cortex';
 import { Button } from '@/components/ui/button';
 import { Brain, Trash2, Wrench } from 'lucide-react';
 
@@ -16,7 +17,9 @@ interface Message {
 }
 
 interface ChatInterfaceProps {
-  onOpenMemories?: () => void;
+  showTeachPrompt?: boolean;
+  onDismissTeachPrompt?: () => void;
+  onTeach?: (prompt: string, category: string) => void;
 }
 
 // Available tools
@@ -27,7 +30,7 @@ const AVAILABLE_TOOLS: Tool[] = [
   { id: 'memory_search', name: 'Memory Search', description: 'Search through your saved memories', icon: 'brain', enabled: true },
 ];
 
-export function ChatInterface({ onOpenMemories }: ChatInterfaceProps) {
+export function ChatInterface({ showTeachPrompt, onDismissTeachPrompt, onTeach }: ChatInterfaceProps) {
   const [modelId, setModelId] = useState<string>('gpt-4o-mini');
   const [deepResearch, setDeepResearch] = useState(false);
   const [tools, setTools] = useState<Tool[]>(AVAILABLE_TOOLS);
@@ -38,6 +41,24 @@ export function ChatInterface({ onOpenMemories }: ChatInterfaceProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const enabledTools = tools.filter(t => t.enabled);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Listen for teach events from Cortex
+  useEffect(() => {
+    const handleTeachEvent = (e: CustomEvent<{ prompt: string; category: string }>) => {
+      setInput(e.detail.prompt);
+    };
+    window.addEventListener('cortex-teach', handleTeachEvent as EventListener);
+    return () => window.removeEventListener('cortex-teach', handleTeachEvent as EventListener);
+  }, []);
+
+  const handleTeachClick = (prompt: string, _category: string) => {
+    setInput(prompt);
+    onDismissTeachPrompt?.();
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -119,12 +140,8 @@ export function ChatInterface({ onOpenMemories }: ChatInterfaceProps) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center gap-2">
-          <Brain className="h-6 w-6 text-primary" />
-          <h1 className="text-xl font-semibold">CORTEX</h1>
-        </div>
+      {/* Toolbar */}
+      <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30">
         <div className="flex items-center gap-2">
           <ModelSelectorSimple 
             selectedModel={modelId} 
@@ -132,6 +149,8 @@ export function ChatInterface({ onOpenMemories }: ChatInterfaceProps) {
             deepResearch={deepResearch}
             onToggleDeepResearch={setDeepResearch}
           />
+        </div>
+        <div className="flex items-center gap-2">
           <Button 
             variant={enabledTools.length > 1 ? "default" : "outline"} 
             size="sm" 
@@ -146,11 +165,6 @@ export function ChatInterface({ onOpenMemories }: ChatInterfaceProps) {
               </span>
             )}
           </Button>
-          {onOpenMemories && (
-            <Button variant="outline" size="sm" onClick={onOpenMemories}>
-              Memories
-            </Button>
-          )}
           {messages.length > 0 && (
             <Button variant="ghost" size="icon" onClick={handleClearChat}>
               <Trash2 className="h-4 w-4" />
@@ -183,10 +197,25 @@ export function ChatInterface({ onOpenMemories }: ChatInterfaceProps) {
               >
                 <Brain className="h-16 w-16 text-muted-foreground mb-4" />
                 <h2 className="text-2xl font-semibold mb-2">Welcome to CORTEX</h2>
-                <p className="text-muted-foreground max-w-md mb-8">
+                <p className="text-muted-foreground max-w-md mb-6">
                   Your AI assistant with persistent memory. I remember our conversations
                   and learn about you over time.
                 </p>
+                
+                {/* Subtle Teach Prompt */}
+                <AnimatePresence>
+                  {showTeachPrompt && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="w-full max-w-md mb-6"
+                    >
+                      <TeachCortex minimal onTeach={handleTeachClick} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 <div className="grid grid-cols-2 gap-3 max-w-lg">
                   <SuggestionCard 
                     text="Tell me about yourself" 
