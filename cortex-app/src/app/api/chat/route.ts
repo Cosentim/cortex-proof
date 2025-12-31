@@ -16,11 +16,17 @@ const MODEL_PROVIDERS: Record<string, 'openai' | 'anthropic'> = {
   'claude-opus-4-20250514': 'anthropic',
 };
 
-const DEFAULT_MODEL_SETTINGS = {
-  temperature: 0.7,
-  maxTokens: 4096,
-  tuningPrompt: '',
-};
+// Deep research prompt enhancement
+const DEEP_RESEARCH_PROMPT = `
+## Deep Research Mode
+You are in Deep Research mode. For this query:
+1. Think step-by-step and show your reasoning process
+2. Consider multiple perspectives and approaches
+3. Provide comprehensive, well-structured answers
+4. Include relevant context, examples, and evidence
+5. Acknowledge uncertainties and limitations
+6. Take your time to give a thorough, high-quality response
+`;
 
 export const maxDuration = 60;
 
@@ -33,7 +39,7 @@ export async function POST(request: Request) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  const { messages, modelId = 'gpt-4o-mini' } = await request.json();
+  const { messages, modelId = 'gpt-4o-mini', deepResearch = false } = await request.json();
   
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
     return new Response('Messages required', { status: 400 });
@@ -49,25 +55,25 @@ export async function POST(request: Request) {
   // Analyze the query
   const analysis = await analyzeQuery(query);
   
-  // Retrieve relevant memories
+  // Retrieve relevant memories (more for deep research)
   const { memories } = await retrieveMemories(user.id, query, analysis);
   
-  // Get user profile (includes preferences)
+  // Get user profile
   const profile = await getUserProfile(user.id);
   
-  // Get model-specific settings from user preferences
-  const modelPrefs = profile?.preferences?.modelSettings?.models?.[modelId] || {};
-  const temperature = modelPrefs.temperature ?? DEFAULT_MODEL_SETTINGS.temperature;
-  const maxTokens = modelPrefs.maxTokens ?? DEFAULT_MODEL_SETTINGS.maxTokens;
-  const tuningPrompt = modelPrefs.tuningPrompt || '';
+  // Adjust settings based on deep research mode
+  const temperature = deepResearch ? 0.5 : 0.7; // More focused for research
+  const maxTokens = deepResearch ? 8192 : 4096; // Allow longer responses
   
   // Encode context using CORTEX Protocol
   const protocolContext = encodeContext(memories, profile, analysis);
   
-  // Build system prompt with optional tuning
+  // Build system prompt
   let systemPrompt = buildSystemPrompt(protocolContext);
-  if (tuningPrompt) {
-    systemPrompt = `${systemPrompt}\n\n## Custom Instructions\n${tuningPrompt}`;
+  
+  // Add deep research instructions if enabled
+  if (deepResearch) {
+    systemPrompt = `${systemPrompt}\n${DEEP_RESEARCH_PROMPT}`;
   }
   
   // Track memory access
