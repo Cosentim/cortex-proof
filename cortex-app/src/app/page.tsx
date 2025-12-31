@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChatInterface } from '@/components/chat';
 import { CortexNav, CortexBrain } from '@/components/cortex';
+import { useCortexProfile } from '@/hooks';
 import { Brain, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -14,14 +15,8 @@ export default function Home() {
   const [mode, setMode] = useState<CortexMode>('chat');
   const [showTeachPrompt, setShowTeachPrompt] = useState(false);
   
-  // Mock stats - in production, fetch from API/Supabase
-  const [cortexStats, setCortexStats] = useState({
-    memoriesCount: 0,
-    conversationsCount: 0,
-    topicsLearned: [] as string[],
-    strengthScore: 0,
-    lastActive: null as Date | null,
-  });
+  // Real stats from Supabase
+  const { stats: cortexStats, teach, refresh } = useCortexProfile();
 
   // Show teach prompt after a delay if cortex is weak
   useEffect(() => {
@@ -87,6 +82,7 @@ export default function Home() {
                 showTeachPrompt={showTeachPrompt}
                 onDismissTeachPrompt={() => setShowTeachPrompt(false)}
                 onTeach={handleTeach}
+                onConversationEnd={refresh}
               />
             </motion.div>
           ) : (
@@ -101,6 +97,7 @@ export default function Home() {
               <CortexBrain 
                 stats={cortexStats}
                 onTeach={handleTeach}
+                completedCategories={cortexStats.categoriesCompleted}
               />
             </motion.div>
           )}
@@ -108,4 +105,4 @@ export default function Home() {
       </main>
     </div>
   );
-}
+}}

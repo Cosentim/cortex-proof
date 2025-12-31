@@ -20,6 +20,7 @@ interface ChatInterfaceProps {
   showTeachPrompt?: boolean;
   onDismissTeachPrompt?: () => void;
   onTeach?: (prompt: string, category: string) => void;
+  onConversationEnd?: () => void;
 }
 
 // Available tools
@@ -30,7 +31,7 @@ const AVAILABLE_TOOLS: Tool[] = [
   { id: 'memory_search', name: 'Memory Search', description: 'Search through your saved memories', icon: 'brain', enabled: true },
 ];
 
-export function ChatInterface({ showTeachPrompt, onDismissTeachPrompt, onTeach }: ChatInterfaceProps) {
+export function ChatInterface({ showTeachPrompt, onDismissTeachPrompt, onTeach, onConversationEnd }: ChatInterfaceProps) {
   const [modelId, setModelId] = useState<string>('gpt-4o-mini');
   const [deepResearch, setDeepResearch] = useState(false);
   const [tools, setTools] = useState<Tool[]>(AVAILABLE_TOOLS);
@@ -123,10 +124,30 @@ export function ChatInterface({ showTeachPrompt, onDismissTeachPrompt, onTeach }
           );
         }
       }
+
+      // Auto-extract memories from user message in background
+      extractMemoriesInBackground(userMessage.content);
+      
     } catch (error) {
       console.error('Chat error:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Background memory extraction (non-blocking)
+  const extractMemoriesInBackground = async (content: string) => {
+    try {
+      await fetch('/api/teach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
+      });
+      // Refresh cortex stats after extraction
+      onConversationEnd?.();
+    } catch (error) {
+      // Silent fail - don't interrupt user experience
+      console.debug('Background memory extraction failed:', error);
     }
   };
 
@@ -136,6 +157,7 @@ export function ChatInterface({ showTeachPrompt, onDismissTeachPrompt, onTeach }
 
   const handleClearChat = () => {
     setMessages([]);
+    onConversationEnd?.();
   };
 
   return (
