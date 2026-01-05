@@ -93,9 +93,14 @@ export async function POST(request: Request) {
   // Debug: log what's being sent
   console.log('[CORTEX DEBUG] Provider:', provider, 'Model:', modelId);
   console.log('[CORTEX DEBUG] System prompt length:', systemPrompt.length);
-  console.log('[CORTEX DEBUG] Context preview:', protocolContext.fullContext.substring(0, 500));
+  console.log('[CORTEX DEBUG] Memories:', memories.length, 'Profile:', !!profile);
+  console.log('[CORTEX DEBUG] Context:', protocolContext.fullContext.substring(0, 800));
   
-  const model = provider === 'anthropic'
+  // Fallback check - if model not in list but contains 'claude', use anthropic
+  const actualProvider = modelId.includes('claude') ? 'anthropic' : provider;
+  console.log('[CORTEX DEBUG] Actual provider resolved:', actualProvider);
+  
+  const model = actualProvider === 'anthropic'
     ? anthropic(modelId)
     : openai(modelId);
 
