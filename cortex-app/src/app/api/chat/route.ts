@@ -61,6 +61,14 @@ export async function POST(request: Request) {
   // Get user profile
   const profile = await getUserProfile(user.id);
   
+  // Debug logging
+  console.log('[CORTEX DEBUG]', {
+    userId: user.id,
+    memoriesFound: memories.length,
+    memoryLayers: memories.map(m => m.memory.layer),
+    hasProfile: !!profile,
+  });
+  
   // Adjust settings based on deep research mode
   const temperature = deepResearch ? 0.5 : 0.7; // More focused for research
   const maxTokens = deepResearch ? 8192 : 4096; // Allow longer responses
@@ -81,6 +89,12 @@ export async function POST(request: Request) {
 
   // Determine provider and create model
   const provider = MODEL_PROVIDERS[modelId] || 'openai';
+  
+  // Debug: log what's being sent
+  console.log('[CORTEX DEBUG] Provider:', provider, 'Model:', modelId);
+  console.log('[CORTEX DEBUG] System prompt length:', systemPrompt.length);
+  console.log('[CORTEX DEBUG] Context preview:', protocolContext.fullContext.substring(0, 500));
+  
   const model = provider === 'anthropic'
     ? anthropic(modelId)
     : openai(modelId);
