@@ -106,8 +106,24 @@ CREATE TABLE IF NOT EXISTS chat_logs (
   context_tokens INTEGER,
   memory_count INTEGER,
   layers_used TEXT[],
+  deep_research BOOLEAN DEFAULT FALSE,
+  reasoning_tokens INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Add new columns if they don't exist (for existing tables)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'chat_logs' AND column_name = 'deep_research') THEN
+    ALTER TABLE chat_logs ADD COLUMN deep_research BOOLEAN DEFAULT FALSE;
+  END IF;
+  
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'chat_logs' AND column_name = 'reasoning_tokens') THEN
+    ALTER TABLE chat_logs ADD COLUMN reasoning_tokens INTEGER DEFAULT 0;
+  END IF;
+END $$;
 
 -- ===========================================
 -- 5. CREATE/UPDATE INDEXES

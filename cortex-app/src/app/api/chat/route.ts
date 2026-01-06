@@ -1,19 +1,24 @@
 import { streamText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
+import type { AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { openai } from '@ai-sdk/openai';
 import { createClient } from '@/lib/supabase/server';
 import { analyzeQuery } from '@/lib/cognitive/query-analyzer';
 import { retrieveMemories, getUserProfile, trackMemoryAccess } from '@/lib/cognitive/retrieval';
 import { encodeContext, buildSystemPrompt } from '@/lib/cognitive/cortex-protocol';
 
-// Model metadata for provider detection
-const MODEL_PROVIDERS: Record<string, 'openai' | 'anthropic'> = {
-  'gpt-4o-mini': 'openai',
-  'gpt-4o': 'openai',
-  'gpt-4-turbo': 'openai',
-  'claude-sonnet-4-20250514': 'anthropic',
-  'claude-3-5-haiku-20241022': 'anthropic',
-  'claude-opus-4-20250514': 'anthropic',
+// Model metadata for provider detection and capabilities
+const MODEL_CONFIG: Record<string, { 
+  provider: 'openai' | 'anthropic';
+  supportsThinking?: boolean;  // Claude's extended thinking
+  supportsO1Reasoning?: boolean; // OpenAI o1 reasoning (future)
+}> = {
+  'gpt-4o-mini': { provider: 'openai' },
+  'gpt-4o': { provider: 'openai' },
+  'gpt-4-turbo': { provider: 'openai' },
+  'claude-sonnet-4-20250514': { provider: 'anthropic', supportsThinking: true },
+  'claude-3-5-haiku-20241022': { provider: 'anthropic', supportsThinking: false },
+  'claude-opus-4-20250514': { provider: 'anthropic', supportsThinking: true },
 };
 
 // Deep research prompt enhancement
@@ -87,31 +92,44 @@ export async function POST(request: Request) {
   // Track memory access
   await trackMemoryAccess(memories.map(m => m.memory.id));
 
-  // Determine provider and create model
-  const provider = MODEL_PROVIDERS[modelId] || 'openai';
+  // Get model config
+  const modelConfig = MODEL_CONFIG[modelId] || { provider: modelId.includes('claude') ? 'anthropic' : 'openai' };
+  const actualProvider = modelConfig.provider;
   
   // Debug: log what's being sent
-  console.log('[CORTEX DEBUG] Provider:', provider, 'Model:', modelId);
+  console.log('[CORTEX DEBUG] Provider:', actualProvider, 'Model:', modelId, 'DeepResearch:', deepResearch);
   console.log('[CORTEX DEBUG] System prompt length:', systemPrompt.length);
   console.log('[CORTEX DEBUG] Memories:', memories.length, 'Profile:', !!profile);
-  console.log('[CORTEX DEBUG] Context:', protocolContext.fullContext.substring(0, 800));
-  
-  // Fallback check - if model not in list but contains 'claude', use anthropic
-  const actualProvider = modelId.includes('claude') ? 'anthropic' : provider;
-  console.log('[CORTEX DEBUG] Actual provider resolved:', actualProvider);
   
   const model = actualProvider === 'anthropic'
     ? anthropic(modelId)
     : openai(modelId);
+
+  // Build provider options for deep research
+  const providerOptions: { anthropic?: AnthropicProviderOptions } = {};
+  
+  // Enable Claude's extended thinking for deep research on supported models
+  if (deepResearch && actualProvider === 'anthropic' && modelConfig.supportsThinking) {
+    providerOptions.anthropic = {
+      thinking: { 
+        type: 'enabled', 
+        budgetTokens: 10000 // Allow up to 10k tokens for reasoning
+      }
+    };
+    console.log('[CORTEX DEBUG] Enabled Claude extended thinking mode');
+  }
 
   // Stream the response
   const result = streamText({
     model,
     system: systemPrompt,
     messages,
-    temperature,
+    temperature: deepResearch && actualProvider === 'anthropic' && modelConfig.supportsThinking 
+      ? 1 // Claude thinking mode requires temperature 1
+      : temperature,
     maxOutputTokens: maxTokens,
-    onFinish: async ({ usage }) => {
+    providerOptions: Object.keys(providerOptions).length > 0 ? providerOptions : undefined,
+    onFinish: async ({ usage, reasoningText }) => {
       // Log usage for analytics
       await supabase.from('chat_logs').insert({
         user_id: user.id,
@@ -121,6 +139,8 @@ export async function POST(request: Request) {
         context_tokens: protocolContext.tokenEstimate,
         memory_count: memories.length,
         layers_used: protocolContext.includedLayers,
+        deep_research: deepResearch,
+        reasoning_tokens: reasoningText?.length || 0,
       });
     },
   });
