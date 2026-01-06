@@ -52,14 +52,14 @@ export async function POST(request: Request) {
 
   const query = lastMessage.content;
   
-  // Analyze the query
+  // Analyze the query (now fast - no API call)
   const analysis = await analyzeQuery(query);
   
-  // Retrieve relevant memories (more for deep research)
-  const { memories } = await retrieveMemories(user.id, query, analysis);
-  
-  // Get user profile
-  const profile = await getUserProfile(user.id);
+  // Run memory retrieval and profile fetch in parallel
+  const [{ memories }, profile] = await Promise.all([
+    retrieveMemories(user.id, query, analysis),
+    getUserProfile(user.id),
+  ]);
   
   // Debug logging
   console.log('[CORTEX DEBUG]', {
