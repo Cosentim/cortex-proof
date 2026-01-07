@@ -2,18 +2,24 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageList } from './message-list';
 import { ChatInput } from './chat-input';
 import { ModelSelectorSimple } from './model-selector-simple';
 import { ToolsPanel, type Tool } from './tools-panel';
 import { TeachCortex } from '@/components/cortex';
 import { Button } from '@/components/ui/button';
-import { Brain, Trash2, Wrench } from 'lucide-react';
+import { Brain, Trash2, Wrench, Loader2, ChevronDown, ChevronUp, ExternalLink, Globe } from 'lucide-react';
+
+interface Source {
+  url: string;
+  title?: string;
+}
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  reasoning?: string;
+  sources?: Source[];
 }
 
 interface ChatInterfaceProps {
@@ -31,7 +37,7 @@ const AVAILABLE_TOOLS: Tool[] = [
   { id: 'memory_search', name: 'Memory Search', description: 'Search through your saved memories', icon: 'brain', enabled: true },
 ];
 
-export function ChatInterface({ showTeachPrompt, onDismissTeachPrompt, onTeach, onConversationEnd }: ChatInterfaceProps) {
+export function ChatInterface({ showTeachPrompt, onDismissTeachPrompt, onConversationEnd }: ChatInterfaceProps) {
   const [modelId, setModelId] = useState<string>('gpt-4o-mini');
   const [deepResearch, setDeepResearch] = useState(false);
   const [tools, setTools] = useState<Tool[]>(AVAILABLE_TOOLS);
@@ -39,6 +45,7 @@ export function ChatInterface({ showTeachPrompt, onDismissTeachPrompt, onTeach, 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [expandedReasoning, setExpandedReasoning] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const enabledTools = tools.filter(t => t.enabled);
@@ -101,25 +108,31 @@ export function ChatInterface({ showTeachPrompt, onDismissTeachPrompt, onTeach, 
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
-      let assistantContent = '';
 
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
         content: '',
+        reasoning: '',
+        sources: [],
       };
 
       setMessages(prev => [...prev, assistantMessage]);
 
       if (reader) {
+        let content = '';
+        
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
-          assistantContent += decoder.decode(value, { stream: true });
+          content += decoder.decode(value, { stream: true });
+          
           setMessages(prev =>
             prev.map(m =>
-              m.id === assistantMessage.id ? { ...m, content: assistantContent } : m
+              m.id === assistantMessage.id 
+                ? { ...m, content } 
+                : m
             )
           );
         }
@@ -258,7 +271,38 @@ export function ChatInterface({ showTeachPrompt, onDismissTeachPrompt, onTeach, 
                 </div>
               </motion.div>
             ) : (
-              <MessageList messages={messages} isLoading={isLoading} />
+              <div className="space-y-4">
+                {messages.map((message) => (
+                  <MessageBubble
+                    key={message.id}
+                    message={message}
+                    isExpanded={expandedReasoning.has(message.id)}
+                    onToggleReasoning={() => {
+                      setExpandedReasoning(prev => {
+                        const next = new Set(prev);
+                        if (next.has(message.id)) {
+                          next.delete(message.id);
+                        } else {
+                          next.add(message.id);
+                        }
+                        return next;
+                      });
+                    }}
+                  />
+                ))}
+                {isLoading && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex items-center gap-2 text-muted-foreground pl-2"
+                  >
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">
+                      {deepResearch ? 'Researching the web...' : 'Thinking...'}
+                    </span>
+                  </motion.div>
+                )}
+              </div>
             )}
           </AnimatePresence>
           <div ref={messagesEndRef} />
@@ -289,5 +333,110 @@ function SuggestionCard({ text, onClick }: { text: string; onClick: () => void }
     >
       {text}
     </button>
+  );
+}
+
+// Message bubble with reasoning and sources support
+interface MessageBubbleProps {
+  message: Message;
+  isExpanded?: boolean;
+  onToggleReasoning?: () => void;
+}
+
+function MessageBubble({ message, isExpanded, onToggleReasoning }: MessageBubbleProps) {
+  const isAssistant = message.role === 'assistant';
+  const hasReasoning = message.reasoning && message.reasoning.length > 0;
+  const hasSources = message.sources && message.sources.length > 0;
+
+  // Deduplicate sources by URL
+  const uniqueSources = message.sources?.filter((source, index, self) =>
+    index === self.findIndex(s => s.url === source.url)
+  ) || [];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`flex ${isAssistant ? 'justify-start' : 'justify-end'}`}
+    >
+      <div className={`max-w-[85%] space-y-2`}>
+        {/* Reasoning toggle (Claude thinking / extended reasoning) */}
+        {isAssistant && hasReasoning && (
+          <button
+            onClick={onToggleReasoning}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            <span className="font-medium">
+              {isExpanded ? 'Hide thinking' : 'Show thinking'}
+            </span>
+          </button>
+        )}
+
+        {/* Reasoning content (collapsible) */}
+        <AnimatePresence>
+          {isExpanded && hasReasoning && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="p-3 bg-muted/50 rounded-lg border border-dashed border-muted-foreground/30 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1.5 font-medium text-xs uppercase tracking-wide mb-2 text-primary">
+                  <Brain className="h-3 w-3" />
+                  Thinking
+                </div>
+                <div className="whitespace-pre-wrap text-xs leading-relaxed">
+                  {message.reasoning}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Main message content */}
+        <div
+          className={`rounded-2xl px-4 py-3 ${
+            isAssistant
+              ? 'bg-muted text-foreground'
+              : 'bg-primary text-primary-foreground'
+          }`}
+        >
+          <div className="whitespace-pre-wrap">{message.content}</div>
+        </div>
+
+        {/* Sources from web search */}
+        {isAssistant && hasSources && uniqueSources.length > 0 && (
+          <div className="px-2 space-y-1.5">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+              <Globe className="h-3 w-3" />
+              Sources ({uniqueSources.length})
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {uniqueSources.slice(0, 5).map((source, idx) => (
+                <a
+                  key={idx}
+                  href={source.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline bg-primary/10 px-2 py-1 rounded-md"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  <span className="truncate max-w-[200px]">
+                    {source.title || new URL(source.url).hostname}
+                  </span>
+                </a>
+              ))}
+              {uniqueSources.length > 5 && (
+                <span className="text-xs text-muted-foreground py-1">
+                  +{uniqueSources.length - 5} more
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </motion.div>
   );
 }

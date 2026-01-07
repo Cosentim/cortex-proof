@@ -2,6 +2,7 @@ import { streamText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
 import type { AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { openai } from '@ai-sdk/openai';
+import type { OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import { createClient } from '@/lib/supabase/server';
 import { analyzeQuery } from '@/lib/cognitive/query-analyzer';
 import { retrieveMemories, getUserProfile, trackMemoryAccess } from '@/lib/cognitive/retrieval';
@@ -11,26 +12,28 @@ import { encodeContext, buildSystemPrompt } from '@/lib/cognitive/cortex-protoco
 const MODEL_CONFIG: Record<string, { 
   provider: 'openai' | 'anthropic';
   supportsThinking?: boolean;  // Claude's extended thinking
-  supportsO1Reasoning?: boolean; // OpenAI o1 reasoning (future)
+  supportsWebSearch?: boolean; // Web search capability
+  supportsReasoning?: boolean; // OpenAI reasoning models
 }> = {
-  'gpt-4o-mini': { provider: 'openai' },
-  'gpt-4o': { provider: 'openai' },
-  'gpt-4-turbo': { provider: 'openai' },
-  'claude-sonnet-4-20250514': { provider: 'anthropic', supportsThinking: true },
-  'claude-3-5-haiku-20241022': { provider: 'anthropic', supportsThinking: false },
-  'claude-opus-4-20250514': { provider: 'anthropic', supportsThinking: true },
+  'gpt-4o-mini': { provider: 'openai', supportsWebSearch: true },
+  'gpt-4o': { provider: 'openai', supportsWebSearch: true },
+  'gpt-4-turbo': { provider: 'openai', supportsWebSearch: true },
+  'claude-sonnet-4-20250514': { provider: 'anthropic', supportsThinking: true, supportsWebSearch: true },
+  'claude-3-5-haiku-20241022': { provider: 'anthropic', supportsThinking: false, supportsWebSearch: true },
+  'claude-opus-4-20250514': { provider: 'anthropic', supportsThinking: true, supportsWebSearch: true },
 };
 
 // Deep research prompt enhancement
 const DEEP_RESEARCH_PROMPT = `
 ## Deep Research Mode
 You are in Deep Research mode. For this query:
-1. Think step-by-step and show your reasoning process
-2. Consider multiple perspectives and approaches
-3. Provide comprehensive, well-structured answers
-4. Include relevant context, examples, and evidence
-5. Acknowledge uncertainties and limitations
-6. Take your time to give a thorough, high-quality response
+1. Use web search to find current, accurate information
+2. Think step-by-step and show your reasoning process
+3. Consider multiple perspectives and approaches
+4. Provide comprehensive, well-structured answers with citations
+5. Include relevant context, examples, and evidence from your search
+6. Acknowledge uncertainties and limitations
+7. Always cite your sources with URLs when providing factual information
 `;
 
 export const maxDuration = 60;
@@ -105,8 +108,15 @@ export async function POST(request: Request) {
     ? anthropic(modelId)
     : openai(modelId);
 
-  // Build provider options for deep research
-  const providerOptions: { anthropic?: AnthropicProviderOptions } = {};
+  // Build provider options and tools for deep research
+  const providerOptions: { 
+    anthropic?: AnthropicProviderOptions;
+    openai?: OpenAIResponsesProviderOptions;
+  } = {};
+  
+  // Build tools object for web search
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tools: Record<string, any> = {};
   
   // Enable Claude's extended thinking for deep research on supported models
   if (deepResearch && actualProvider === 'anthropic' && modelConfig.supportsThinking) {
@@ -118,18 +128,36 @@ export async function POST(request: Request) {
     };
     console.log('[CORTEX DEBUG] Enabled Claude extended thinking mode');
   }
+  
+  // Enable web search for deep research
+  if (deepResearch) {
+    if (actualProvider === 'openai') {
+      // OpenAI web search tool
+      tools.web_search = openai.tools.webSearch({
+        searchContextSize: 'high',
+      });
+      console.log('[CORTEX DEBUG] Enabled OpenAI web search');
+    } else if (actualProvider === 'anthropic') {
+      // Anthropic web search tool
+      tools.web_search = anthropic.tools.webSearch_20250305({
+        maxUses: 5,
+      });
+      console.log('[CORTEX DEBUG] Enabled Claude web search');
+    }
+  }
 
   // Stream the response
   const result = streamText({
     model,
     system: systemPrompt,
     messages,
+    tools: Object.keys(tools).length > 0 ? tools : undefined,
     temperature: deepResearch && actualProvider === 'anthropic' && modelConfig.supportsThinking 
       ? 1 // Claude thinking mode requires temperature 1
       : temperature,
     maxOutputTokens: maxTokens,
     providerOptions: Object.keys(providerOptions).length > 0 ? providerOptions : undefined,
-    onFinish: async ({ usage, reasoningText }) => {
+    onFinish: async ({ usage }) => {
       // Log usage for analytics
       await supabase.from('chat_logs').insert({
         user_id: user.id,
@@ -140,10 +168,10 @@ export async function POST(request: Request) {
         memory_count: memories.length,
         layers_used: protocolContext.includedLayers,
         deep_research: deepResearch,
-        reasoning_tokens: reasoningText?.length || 0,
       });
     },
   });
 
+  // Return text stream response
   return result.toTextStreamResponse();
 }
